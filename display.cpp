@@ -1,4 +1,5 @@
 #include "display.h"
+#include "font.h"
 
 Display::Display(int width, int height, int unit) :
     width(width), height(height), unit(unit), renderer(NULL) {
@@ -53,7 +54,7 @@ Sprite makeSprite(const char* str) {
     for (int r = 0; r < rows; ++r) {
         uint8_t mask = 0;
         for (int c = 0; c < 8; ++c) {
-            if (str[r*8+c] != '.') {
+            if (str[r*8+c] == '1') {
                 mask |= (1<<c);
             }
         }
@@ -67,37 +68,54 @@ void testDisplay() {
         SDL_Log("failed to SDL_INIT_EVERYTHING, error %s", SDL_GetError());
     }
 
-    Display d(100,80,10);
+    Display d(100,90,8);
     d.init();
     d.clear();
-    d.draw(makeSprite("..*....."
-                     "..**...."
-                     "..****.."
-                     ".....*.."
-                     ".....*.."), 10, 10);
+    d.draw(makeSprite(
+                      "00100000"
+                      "00110000"
+                      "00111100"
+                      "00000100"
+                      "00000100"), 10, 10);
 
-    d.draw(makeSprite("..*....."
-                     "..**...."
-                     "..****.."
-                     ".....*.."
-                     "********"
-                     ".*****.."
-                     ".....*.."
-                     ".....*.."), 40, 15);
+    d.draw(makeSprite(
+                      "01010101"
+                      "10101010"
+                      "01010101"
+                      "10101010"
+                      "01010101"
+                      "10101010"
+                      "01010101"
+                      "10101010"
+                      ), 40, 15);
     d.render();
     SDL_Delay( 2000 );
     SDL_Log("Phase 2");
     d.clear();
-    d.draw(makeSprite("..*....."
-                     "..**...."
-                     "..****.."
-                     ".....*.."
-                     "********"
-                     "..*..*.."
-                     "..*..*.."
-                     ".....*.."), 50, 15);
+    d.draw(makeSprite(
+                      "00010000"
+                      "00101000"
+                      "00101000"
+                      "00010000"
+                      "00010000"
+                      "00101000"
+                      "00101000"
+                      "00010000"), 50, 15);
     d.render();
-    SDL_Delay( 5000 );
+    SDL_Delay( 2000 );
+    d.clear();
+
+    for (int i = 0; i < 16; ++i) {
+        d.draw(makeSprite(fonts[i]), i*5,i*5);
+        d.render();
+        SDL_Delay(500);
+    }
+
+    d.draw(makeSprite(fonts[0xA]), 40,3);
+    d.draw(makeSprite(fonts[0x6]), 50,3);
+    d.render();
+    SDL_Delay(500);
+
     SDL_Quit();
 }
 
