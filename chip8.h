@@ -44,9 +44,10 @@ class Chip8Vm {
     bool keyDown[16];
 
     void loadFonts();
-    void pollEvents();
+    void pollEvents(bool& exit);
     void run();
 
+    uint16_t readOpcode();
     uint8_t randomByte();
     Sprite loadSprite(uint16_t pos, uint8_t bytes);
 

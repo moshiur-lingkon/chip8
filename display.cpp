@@ -36,23 +36,27 @@ bool Display::draw(Sprite sprite, int x, int y) {
         uint8_t columnMask = sprite[r];
         for (int c = 0; c < 8; ++c) {
             bool filled = (columnMask >> c) & 1;
-            int _r = y+r, _c = x+c;
+            int _r = (y+r)%height, _c = (x+c)%width;
             bool newState = filled ^ screen[_r][_c];
             if (!newState && screen[_r][_c]) {
                 collision = true;
             }
+            bool change = screen[_r][_c] != newState;
             screen[_r][_c] = newState;
-            SDL_Rect rect;
-            rect.x = (x+c)*unit;
-            rect.y = (y+r)*unit;
-            rect.w = unit;
-            rect.h = unit;
-            if (newState) {
-                SDL_SetRenderDrawColor(renderer, 0xE0, 0x00, 0x00, 0xFF);
-            } else {
-                SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
+
+            if (change) {
+                SDL_Rect rect;
+                rect.x = _c*unit;
+                rect.y = _r*unit;
+                rect.w = unit;
+                rect.h = unit;
+                if (newState) {
+                    SDL_SetRenderDrawColor(renderer, 0xE0, 0x00, 0x00, 0xFF);
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
+                }
+                SDL_RenderFillRect(renderer,&rect);
             }
-            SDL_RenderFillRect(renderer,&rect);
         }
     }
     return collision;

@@ -1,11 +1,14 @@
 #include <stdlib.h>
+#include <string.h>
 #include "chip8.h"
 #include "font.h"
 
-Chip8Vm::Chip8Vm() : display(64,32,10) {
+Chip8Vm::Chip8Vm() : display(64,32,20) {
     reg.delayTimer.startVal = 0;
     reg.soundTimer.startVal = 0;
     reg.stackPtr = 0;
+
+    memset(keyDown, 0, sizeof(keyDown));
 
     display.init();
     loadFonts();
@@ -27,29 +30,45 @@ void Chip8Vm::loadFonts() {
 }
 
 Sprite Chip8Vm::loadSprite(uint16_t pos, uint8_t bytes) {
+    printf("loadSprite: %d, %d\n", pos, bytes);
     Sprite ret;
     for (int i = 0; i < bytes; ++i) {
         ret.push_back(memory[pos+i]);
+        char bin[9];bin[9]=0;
+        for (int j=0;j<8;++j){
+            bin[j]='0' + ((memory[pos+i]>>j)&1);
+        }
+        printf("%s\n",bin);
     }
     return ret;
 }
 
+uint16_t Chip8Vm::readOpcode() {
+    uint16_t opcode = (memory[reg.PC] << 8) | 
+                       memory[reg.PC + 1];
+    return opcode;
+}
+
 void Chip8Vm::run() {
-    uint16_t ins = memory[reg.PC]<<8 | memory[reg.PC+1];
-    uint8_t t = (ins>>12);
-    uint8_t x = (ins>>8)&0xF;
-    uint8_t y = (ins>>4)&0xF;
-    uint8_t z = ins & 0xF;
-    uint8_t nnn = ins & 0xFFF;
-    uint8_t kk = ins & 0xFF;
+    uint16_t opcode = readOpcode();
+    uint8_t t = (opcode>>12);
+    uint8_t x = (opcode>>8)&0xF;
+    uint8_t y = (opcode>>4)&0xF;
+    uint8_t z = opcode & 0xF;
+    uint16_t nnn = opcode & 0xFFF;
+    uint8_t kk = opcode & 0xFF;
+
+    printf("Registers: PC => %d, I => %d\n", reg.PC, reg.I);
+    printf("opcode[%x]: %x %x %x %x, nnn %x, kk %x\n", opcode, t, x, y, z, nnn, kk);
+    printf("-------------\n");
 
     switch (t) {
         case 0x0:
-            switch (ins) {
+            switch (opcode) {
                 case 0x00E0:
                     display.clear();
                     display.render();
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
                 case 0x00EE:
                     reg.PC = stack[reg.stackPtr--];
@@ -65,26 +84,34 @@ void Chip8Vm::run() {
             break;
         case 0x3: // 0x3xkk
             if (reg.V[x] == kk) {
+                reg.PC += 4;
+            } else {
                 reg.PC += 2;
             }
             break;
         case 0x4: // 0x4xkk
             if (reg.V[x] != kk) {
+                reg.PC += 4;
+            } else {
                 reg.PC += 2;
             }
+
             break;
         case 0x5: // 0x5xy0 TODO: check if z is 0
             if (reg.V[x] == reg.V[y]) {
+                reg.PC += 4;
+            } else {
                 reg.PC += 2;
             }
+
             break;
         case 0x6: // 0x6xkk
             reg.V[x] = kk;
-            reg.PC++;
+            reg.PC += 2;
             break;
         case 0x7: // 0x7xkk
             reg.V[x] += kk;
-            reg.PC++;
+            reg.PC += 2;
             break;
         case 0x8: // 0x8xyz
             switch (z) {
@@ -126,43 +153,47 @@ void Chip8Vm::run() {
                     reg.V[x] <<= 1;
                     break;
             }
-            reg.PC++;
+            reg.PC += 2;
             break;
         case 0x9: // 0x9xy0
             if (reg.V[x] != reg.V[y]) {
+                reg.PC += 4;
+            } else {
                 reg.PC += 2;
             }
             break;
         case 0xA: // 0xAnnn
             reg.I = nnn;
-            reg.PC++;
+            reg.PC += 2;
             break;
         case 0xB: // 0xBnnn
             reg.PC = reg.V[0] + nnn;
             break;
         case 0xC: // 0xCxkk
             reg.V[x] = randomByte() & kk;
-            reg.PC++;
+            reg.PC += 2;
             break;
         case 0xD: // 0xDxyz
             reg.V[0xF] = display.draw(loadSprite(reg.I, z), reg.V[x], reg.V[y]) ? 1 : 0;
             display.render();
-            reg.PC++;
+            reg.PC += 2;
             break;
         case 0xE:
             switch (kk) {
                 case 0x9E:
+                    printf("checking if key down %x\n", reg.V[x]);
                     if (keyDown[reg.V[x]]) {
-                        reg.PC += 2;
+                        reg.PC += 4;
                     } else {
-                        reg.PC++;
+                        reg.PC += 2;
                     }
                     break;
                 case 0xA1:
+                    printf("checking if key up %x\n", reg.V[x]);
                     if (!keyDown[reg.V[x]]) {
-                        reg.PC += 2;
+                        reg.PC += 4;
                     } else {
-                        reg.PC++;
+                        reg.PC += 2;
                     }
                     break;
             }
@@ -171,9 +202,11 @@ void Chip8Vm::run() {
             switch (kk) {
                 case 0x07:
                     reg.V[x] = reg.delayTimer.val(SDL_GetTicks());
+                    reg.PC += 2;
                     break;
                 case 0x0A:
                 {
+                    printf("waiting for any key press..\n");
                     bool isPressed = false;
                     uint8_t pressedKey = 0;
                     for (uint8_t key = 0; key <= 0xF; ++key) {
@@ -185,25 +218,25 @@ void Chip8Vm::run() {
                     }
                     if (isPressed) {
                         reg.V[x] = pressedKey;
-                        reg.PC++;
+                        reg.PC += 2;
                     }
                 }
                     break;
                 case 0x15:
                     reg.delayTimer.set(reg.V[x], SDL_GetTicks());
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
                 case 0x18:
                     reg.soundTimer.set(reg.V[x], SDL_GetTicks());
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
                 case 0x1E:
                     reg.I = reg.I + reg.V[x];
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
                 case 0x29:
                     reg.I = digitSpritePos[reg.V[x]];
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
                 case 0x33:
                     {
@@ -213,34 +246,38 @@ void Chip8Vm::run() {
                         memory[reg.I]   = d100;
                         memory[reg.I+1] = d10;
                         memory[reg.I+2] = d;
-                        reg.PC++;
+                        reg.PC += 2;
                     }
                     break;
                 case 0x55:
                     for (uint8_t r = 0; r <= x; ++r) {
                         memory[reg.I+r] = reg.V[r];
                     }
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
                 case 0x65:
                     for (uint8_t r = 0; r <= x; ++r) {
                         reg.V[r] = memory[reg.I+r];
                     }
-                    reg.PC++;
+                    reg.PC += 2;
                     break;
             }
             break;
     }
 }
 
-void Chip8Vm::pollEvents() {
+void Chip8Vm::pollEvents(bool& exit) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        printf("Poll event: type %d, code %d\n", event.type, event.key.keysym.sym);
         switch (event.type) {
             case SDL_KEYDOWN:
             case SDL_KEYUP:
                 {
-                    int keyCodes[] = {SDLK_0,SDLK_1,SDLK_2,SDLK_3,SDLK_4,SDLK_5,SDLK_6,SDLK_7,SDLK_8,SDLK_9,SDLK_a,SDLK_b,SDLK_c,SDLK_d,SDLK_e,SDLK_f};
+                    int keyCodes[] = {SDLK_1,SDLK_2,SDLK_3,SDLK_4,
+                                      SDLK_q,SDLK_w,SDLK_e,SDLK_r,
+                                      SDLK_a,SDLK_s,SDLK_d,SDLK_f,
+                                      SDLK_z,SDLK_x,SDLK_c,SDLK_v};
                     for (int k = 0; k < 16; ++k) {
                         if (keyCodes[k] == event.key.keysym.sym) {
                             keyDown[k] = (event.type == SDL_KEYDOWN);
@@ -248,9 +285,12 @@ void Chip8Vm::pollEvents() {
                     }
                 }
                 break;
-            case SDL_WINDOWEVENT_EXPOSED:
-                display.render();
-                break;
+        }
+        if (event.window.event == SDL_WINDOWEVENT_EXPOSED) {
+            display.render();
+        }
+        if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+            exit = true;
         }
     }
 }
@@ -262,9 +302,14 @@ void Chip8Vm::emulate(const std::vector<uint16_t>& rom) {
         memory[0x200 + i*2 + 1] = ins & 0xFF;
     }
     reg.PC = 0x200;
+    bool exit = false;
     while (true) {
-        pollEvents();
+        pollEvents(exit);
         run();
+        if (exit) {
+            break;
+        }
+        SDL_Delay(10);
     }
 }
 
