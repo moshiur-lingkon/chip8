@@ -1,2 +1,2 @@
 #!/bin/bash
-g++ -o test display.cpp display.h font.h -lSDL2 && ./test
+g++ -o test main.cpp chip8.cpp display.cpp chip8.h display.h font.h -lSDL2 && ./test Tron.ch8

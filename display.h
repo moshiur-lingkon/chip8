@@ -13,14 +13,17 @@ class Display {
     int unit;
     SDL_Window* window;
     SDL_Renderer* renderer;
+    std::vector<std::vector<bool> > screen;
 public:
     Display(int width, int height, int unit);
     void init();
     void release();
     void clear();
     void render();
-    void draw(Sprite sprite, int x, int y);
+    bool draw(Sprite sprite, int x, int y);
 };
+
+Sprite makeSprite(const char* str);
 
 void testDisplay();
 

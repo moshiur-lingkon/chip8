@@ -1,8 +1,8 @@
 #include "display.h"
-#include "font.h"
 
 Display::Display(int width, int height, int unit) :
-    width(width), height(height), unit(unit), renderer(NULL) {
+    width(width), height(height), unit(unit),
+    renderer(NULL), screen(height, std::vector<bool>(width, false)) {
 }
 
 void Display::init() {
@@ -23,24 +23,39 @@ void Display::release() {
 void Display::clear() {
   SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
   SDL_RenderClear(renderer);
+  for (int r = 0; r < height; ++r) {
+      for (int c = 0; c < width; ++c) {
+          screen[r][c] = false;
+      }
+  }
 }
 
-void Display::draw(Sprite sprite, int x, int y) {
-    SDL_SetRenderDrawColor(renderer, 0xE0, 0x00, 0x00, 0xFF);
+bool Display::draw(Sprite sprite, int x, int y) {
+    bool collision = false;
     for (int r = 0; r < sprite.size(); ++r) {
         uint8_t columnMask = sprite[r];
         for (int c = 0; c < 8; ++c) {
-            bool fill = (columnMask >> c) & 1;
-            if (fill) {
-                SDL_Rect rect;
-                rect.x = (x+c)*unit;
-                rect.y = (y+r)*unit;
-                rect.w = unit;
-                rect.h = unit;
-                SDL_RenderFillRect(renderer,&rect);
+            bool filled = (columnMask >> c) & 1;
+            int _r = y+r, _c = x+c;
+            bool newState = filled ^ screen[_r][_c];
+            if (!newState && screen[_r][_c]) {
+                collision = true;
             }
+            screen[_r][_c] = newState;
+            SDL_Rect rect;
+            rect.x = (x+c)*unit;
+            rect.y = (y+r)*unit;
+            rect.w = unit;
+            rect.h = unit;
+            if (newState) {
+                SDL_SetRenderDrawColor(renderer, 0xE0, 0x00, 0x00, 0xFF);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
+            }
+            SDL_RenderFillRect(renderer,&rect);
         }
     }
+    return collision;
 }
 
 void Display::render() {
@@ -63,6 +78,7 @@ Sprite makeSprite(const char* str) {
     return ret;
 }
 
+/*
 void testDisplay() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("failed to SDL_INIT_EVERYTHING, error %s", SDL_GetError());
@@ -103,18 +119,30 @@ void testDisplay() {
                       "00010000"), 50, 15);
     d.render();
     SDL_Delay( 2000 );
+    d.draw(makeSprite(
+                      "10010001"
+                      "00101000"
+                      "00101000"
+                      "00010000"
+                      "00010000"
+                      "00101000"
+                      "00101000"
+                      "10010001"), 50, 15);
+    d.render();
+    SDL_Delay( 2000 );
     d.clear();
 
     for (int i = 0; i < 16; ++i) {
-        d.draw(makeSprite(fonts[i]), i*5,i*5);
+        d.draw(makeSprite(chip8_fonts[i]), i*5,i*5);
         d.render();
-        SDL_Delay(500);
+        SDL_Delay(200);
     }
 
-    d.draw(makeSprite(fonts[0xA]), 40,3);
-    d.draw(makeSprite(fonts[0x6]), 50,3);
-    d.render();
-    SDL_Delay(500);
+    for (int i = 0; i < 16; ++i) {
+        d.draw(makeSprite(chip8_fonts[i]), i*5,i*5);
+        d.render();
+        SDL_Delay(200);
+    }
 
     SDL_Quit();
 }
@@ -123,3 +151,4 @@ int main() {
     testDisplay();
     return 0;
 }
+*/

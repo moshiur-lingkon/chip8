@@ -1,16 +1,23 @@
 #ifndef __CHIP8_H__
 #define __CHIP8_H__
 
+#include "display.h"
+
 struct Timer {
     uint8_t startVal;
-    uint32_t setTime;
+    uint32_t setTimeMs;
 
-    uint8_t val(uint32_t now) {
-        uint32_t elapsed = (now - setTime)/1000;
+    uint8_t val(uint32_t nowMs) {
+        uint32_t elapsed = (nowMs - setTimeMs)/1000;
         if (elapsed < startVal) {
             return startVal - elapsed;
         }
         return 0;
+    }
+
+    uint8_t set(uint8_t val, uint32_t nowMs) {
+        startVal = val;
+        setTimeMs = nowMs;
     }
 };
 
@@ -27,11 +34,26 @@ struct Registers {
 };
 
 class Chip8Vm {
+    Display display;
+
     Registers reg;
     uint16_t stack[32];
     uint8_t memory[0x1000];
+    uint16_t digitSpritePos[16];
+
+    bool keyDown[16];
+
+    void loadFonts();
+    void pollEvents();
+    void run();
+
+    uint8_t randomByte();
+    Sprite loadSprite(uint16_t pos, uint8_t bytes);
+
 public:
-    void run(Rom rom);
+    Chip8Vm();
+    ~Chip8Vm();
+    void emulate(const std::vector<uint16_t>& rom);
 };
 
 #endif

@@ -1,4 +1,7 @@
-const char* fonts[16] = {
+#ifndef __FONT_H__
+#define __FONT_H__
+
+const char* chip8_fonts[16] = {
     "11110000"
     "10010000"
     "10010000"
@@ -95,3 +98,5 @@ const char* fonts[16] = {
     "10000000"
     "10000000"
 };
+
+#endif
