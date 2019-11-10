@@ -6,7 +6,7 @@
 Chip8Vm::Chip8Vm() : display(64,32,20) {
     reg.delayTimer.startVal = 0;
     reg.soundTimer.startVal = 0;
-    reg.stackPtr = 0;
+    reg.stackSize = 0;
 
     memset(keyDown, 0, sizeof(keyDown));
 
@@ -63,6 +63,7 @@ void Chip8Vm::run() {
     printf("-------------\n");
 
     auto startTime = std::chrono::steady_clock::now();
+    bool PCModified = false;
 
     switch (t) {
         case 0x0:
@@ -70,50 +71,48 @@ void Chip8Vm::run() {
                 case 0x00E0:
                     display.clear();
                     display.render();
-                    reg.PC += 2;
                     break;
                 case 0x00EE:
-                    reg.PC = stack[reg.stackPtr--];
+                    reg.PC = stack[--reg.stackSize];
+                    PCModified = true;
+                    break;
+                default:
+                    printf(">>>>>>>>>>>>>>>>> ERROR!!!\n");
                     break;
             }
             break;
         case 0x1: // 0x1nnn
             reg.PC = nnn;
+            PCModified = true;
             break;
         case 0x2: // 0x2nnn
-            stack[++reg.stackPtr] = reg.PC;
+            stack[reg.stackSize++] = reg.PC;
             reg.PC = nnn;
+            PCModified = true;
             break;
         case 0x3: // 0x3xkk
             if (reg.V[x] == kk) {
                 reg.PC += 4;
-            } else {
-                reg.PC += 2;
+                PCModified = true;
             }
             break;
         case 0x4: // 0x4xkk
             if (reg.V[x] != kk) {
                 reg.PC += 4;
-            } else {
-                reg.PC += 2;
+                PCModified = true;
             }
-
             break;
         case 0x5: // 0x5xy0 TODO: check if z is 0
             if (reg.V[x] == reg.V[y]) {
                 reg.PC += 4;
-            } else {
-                reg.PC += 2;
+                PCModified = true;
             }
-
             break;
         case 0x6: // 0x6xkk
             reg.V[x] = kk;
-            reg.PC += 2;
             break;
         case 0x7: // 0x7xkk
             reg.V[x] += kk;
-            reg.PC += 2;
             break;
         case 0x8: // 0x8xyz
             switch (z) {
@@ -130,13 +129,13 @@ void Chip8Vm::run() {
                     reg.V[x] ^= reg.V[y];
                     break;
                 case 4:
-                {
+                    {
                     uint16_t bigVx = reg.V[x];
                     uint16_t bigVy = reg.V[y];
                     uint16_t sum = bigVx + bigVy;
                     reg.V[0xF] = sum > 255 ? 1 : 0;
-                    reg.V[x] = sum & 0xFFFF;
-                }
+                    reg.V[x] = sum & 0xFF;
+                    }
                     break;
                 case 5:
                     reg.V[0xF] = reg.V[x] > reg.V[y] ? 1 : 0;
@@ -154,31 +153,29 @@ void Chip8Vm::run() {
                     reg.V[0xF] = (reg.V[x]>>7)&1;
                     reg.V[x] <<= 1;
                     break;
+                default:
+                    printf(">>>>>>>>>>>>>>>>> ERROR!!!\n");
+                    break;
             }
-            reg.PC += 2;
             break;
         case 0x9: // 0x9xy0
             if (reg.V[x] != reg.V[y]) {
                 reg.PC += 4;
-            } else {
-                reg.PC += 2;
+                PCModified = true;
             }
             break;
         case 0xA: // 0xAnnn
             reg.I = nnn;
-            reg.PC += 2;
             break;
         case 0xB: // 0xBnnn
             reg.PC = reg.V[0] + nnn;
             break;
         case 0xC: // 0xCxkk
             reg.V[x] = randomByte() & kk;
-            reg.PC += 2;
             break;
         case 0xD: // 0xDxyz
             reg.V[0xF] = display.draw(loadSprite(reg.I, z), reg.V[x], reg.V[y]) ? 1 : 0;
             display.render();
-            reg.PC += 2;
             break;
         case 0xE:
             switch (kk) {
@@ -186,17 +183,18 @@ void Chip8Vm::run() {
                     printf("checking if key down %x\n", reg.V[x]);
                     if (keyDown[reg.V[x]]) {
                         reg.PC += 4;
-                    } else {
-                        reg.PC += 2;
+                        PCModified = true;
                     }
                     break;
                 case 0xA1:
                     printf("checking if key up %x\n", reg.V[x]);
                     if (!keyDown[reg.V[x]]) {
                         reg.PC += 4;
-                    } else {
-                        reg.PC += 2;
+                        PCModified = true;
                     }
+                    break;
+                default:
+                    printf(">>>>>>>>>>>>>>>>> ERROR!!!\n");
                     break;
             }
             break;
@@ -204,7 +202,6 @@ void Chip8Vm::run() {
             switch (kk) {
                 case 0x07:
                     reg.V[x] = reg.delayTimer.get();
-                    reg.PC += 2;
                     break;
                 case 0x0A:
                 {
@@ -220,54 +217,54 @@ void Chip8Vm::run() {
                     }
                     if (isPressed) {
                         reg.V[x] = pressedKey;
-                        reg.PC += 2;
                     }
                 }
                     break;
                 case 0x15:
                     reg.delayTimer.set(reg.V[x]);
-                    reg.PC += 2;
                     break;
                 case 0x18:
                     reg.soundTimer.set(reg.V[x]);
-                    reg.PC += 2;
                     break;
                 case 0x1E:
                     reg.I = reg.I + reg.V[x];
-                    reg.PC += 2;
                     break;
                 case 0x29:
                     reg.I = digitSpritePos[reg.V[x]];
-                    reg.PC += 2;
                     break;
                 case 0x33:
                     {
+                        printf("BCD: %d\n", reg.V[x]);
                         uint8_t d100 = reg.V[x]/100;
                         uint8_t d10  = (reg.V[x]/10)%10;
                         uint8_t d    = reg.V[x]%10;
                         memory[reg.I]   = d100;
                         memory[reg.I+1] = d10;
                         memory[reg.I+2] = d;
-                        reg.PC += 2;
                     }
                     break;
                 case 0x55:
                     for (uint8_t r = 0; r <= x; ++r) {
                         memory[reg.I+r] = reg.V[r];
                     }
-                    reg.PC += 2;
                     break;
                 case 0x65:
                     for (uint8_t r = 0; r <= x; ++r) {
                         reg.V[r] = memory[reg.I+r];
                     }
-                    reg.PC += 2;
+                    break;
+                default:
+                    printf(">>>>>>>>>>>>>>>>> ERROR!!!\n");
                     break;
             }
             break;
     }
 
-    auto elapsed = std::chrono::steady_clock::now() - startTime;
+    if (!PCModified) {
+        reg.PC += 2;
+    }
+
+    std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - startTime;
     printf("Took %.2lf ms\n", elapsed.count()*1000);
 }
 

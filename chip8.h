@@ -11,7 +11,7 @@ struct Timer {
 
     uint8_t get() {
         auto now = std::chrono::steady_clock::now();
-        auto diff = now - setTime;
+        std::chrono::duration<double> diff = now - setTime;
         double diffMs = diff.count()*1000;
         if ((int)diffMs < startVal) {
             return startVal - (int)diffMs;
@@ -34,7 +34,7 @@ struct Registers {
     Timer delayTimer;
     Timer soundTimer;
 
-    uint8_t stackPtr;
+    uint8_t stackSize;
 };
 
 class Chip8Vm {
