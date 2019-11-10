@@ -1,23 +1,27 @@
 #ifndef __CHIP8_H__
 #define __CHIP8_H__
 
+#include <chrono>
 #include "display.h"
 
 struct Timer {
     uint8_t startVal;
-    uint32_t setTimeMs;
+    typedef std::chrono::time_point<std::chrono::steady_clock> TimePoint;
+    TimePoint setTime;
 
-    uint8_t val(uint32_t nowMs) {
-        uint32_t elapsed = (nowMs - setTimeMs)/1000;
-        if (elapsed < startVal) {
-            return startVal - elapsed;
+    uint8_t get() {
+        auto now = std::chrono::steady_clock::now();
+        auto diff = now - setTime;
+        double diffMs = diff.count()*1000;
+        if ((int)diffMs < startVal) {
+            return startVal - (int)diffMs;
         }
         return 0;
     }
 
-    uint8_t set(uint8_t val, uint32_t nowMs) {
+    uint8_t set(uint8_t val) {
         startVal = val;
-        setTimeMs = nowMs;
+        setTime = std::chrono::steady_clock::now();
     }
 };
 

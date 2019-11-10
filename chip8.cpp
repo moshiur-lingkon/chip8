@@ -62,6 +62,8 @@ void Chip8Vm::run() {
     printf("opcode[%x]: %x %x %x %x, nnn %x, kk %x\n", opcode, t, x, y, z, nnn, kk);
     printf("-------------\n");
 
+    auto startTime = std::chrono::steady_clock::now();
+
     switch (t) {
         case 0x0:
             switch (opcode) {
@@ -201,7 +203,7 @@ void Chip8Vm::run() {
         case 0xF:
             switch (kk) {
                 case 0x07:
-                    reg.V[x] = reg.delayTimer.val(SDL_GetTicks());
+                    reg.V[x] = reg.delayTimer.get();
                     reg.PC += 2;
                     break;
                 case 0x0A:
@@ -223,11 +225,11 @@ void Chip8Vm::run() {
                 }
                     break;
                 case 0x15:
-                    reg.delayTimer.set(reg.V[x], SDL_GetTicks());
+                    reg.delayTimer.set(reg.V[x]);
                     reg.PC += 2;
                     break;
                 case 0x18:
-                    reg.soundTimer.set(reg.V[x], SDL_GetTicks());
+                    reg.soundTimer.set(reg.V[x]);
                     reg.PC += 2;
                     break;
                 case 0x1E:
@@ -264,6 +266,9 @@ void Chip8Vm::run() {
             }
             break;
     }
+
+    auto elapsed = std::chrono::steady_clock::now() - startTime;
+    printf("Took %.2lf ms\n", elapsed.count()*1000);
 }
 
 void Chip8Vm::pollEvents(bool& exit) {
