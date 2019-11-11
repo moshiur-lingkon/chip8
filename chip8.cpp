@@ -211,7 +211,7 @@ void Chip8Vm::run() {
                     break;
                 case 0x0A:
                     {
-                        printf("waiting for any key press..\n");
+                        //printf("waiting for any key press..\n");
                         bool isPressed = false;
                         uint8_t pressedKey = 0;
                         for (uint8_t key = 0; key <= 0xF; ++key) {
