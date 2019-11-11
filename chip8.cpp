@@ -327,9 +327,16 @@ void Chip8Vm::emulate(const std::vector<uint16_t>& rom) {
     reg.PC = 0x200;
     bool exit = false;
 
+    auto lastIteration = std::chrono::steady_clock::now();
     while (true) {
         pollEvents(exit);
-        run();
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double, std::ratio<1, 500> > diff = now - lastIteration; // 500 hz
+        int debt = round(diff.count());
+        while (debt-- > 0) {
+            run();
+            lastIteration = std::chrono::steady_clock::now();
+        }
         if (exit) {
             break;
         }
