@@ -1,5 +1,9 @@
 #include "display.h"
 
+#ifdef TEST_DISPLAY
+#include "font.h"
+#endif
+
 Display::Display(int width, int height, int unit) :
     width(width), height(height), unit(unit),
     renderer(NULL), screen(height, std::vector<bool>(width, false)) {
@@ -35,7 +39,7 @@ bool Display::draw(Sprite sprite, int x, int y) {
     for (int r = 0; r < sprite.size(); ++r) {
         uint8_t columnMask = sprite[r];
         for (int c = 0; c < 8; ++c) {
-            bool filled = (columnMask >> c) & 1;
+            bool filled = (columnMask >> (7-c)) & 1;
             int _r = (y+r)%height, _c = (x+c)%width;
             bool newState = filled ^ screen[_r][_c];
             if (!newState && screen[_r][_c]) {
@@ -74,7 +78,7 @@ Sprite makeSprite(const char* str) {
         uint8_t mask = 0;
         for (int c = 0; c < 8; ++c) {
             if (str[r*8+c] == '1') {
-                mask |= (1<<c);
+                mask |= (1<<(7-c));
             }
         }
         ret.push_back(mask);
@@ -82,7 +86,7 @@ Sprite makeSprite(const char* str) {
     return ret;
 }
 
-/*
+#ifdef TEST_DISPLAY
 void testDisplay() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         SDL_Log("failed to SDL_INIT_EVERYTHING, error %s", SDL_GetError());
@@ -155,4 +159,4 @@ int main() {
     testDisplay();
     return 0;
 }
-*/
+#endif

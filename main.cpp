@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <endian.h>
+//#include <endian.h>
 #include <vector>
 #include <SDL2/SDL.h>
 #include "chip8.h"
@@ -9,11 +9,17 @@
 std::vector<uint16_t> loadRomFromFile(FILE* f) {
     std::vector<uint16_t> ret;
     const size_t BUF_SIZE = 1024;
-    uint16_t buffer[BUF_SIZE];
+    uint8_t buffer[BUF_SIZE];
     while (true) {
-        size_t readSize = fread(buffer, sizeof(uint16_t), BUF_SIZE, f);
-        for (int i = 0; i < readSize; ++i) {
-            ret.push_back(htobe16(buffer[i]));
+        size_t readSize = fread(buffer, sizeof(uint8_t), BUF_SIZE, f);
+        for (int i = 0; i < readSize; i+=2) {
+            uint16_t opcode = 0;
+            //if (i == readSize-1) {
+            //    opcode = buffer[i];
+            //} else {
+            opcode = buffer[i] << 8 | buffer[i+1];
+            //}
+            ret.push_back(opcode);
         }
         if (readSize < BUF_SIZE) break;
     }

@@ -4,17 +4,17 @@
 #include <chrono>
 #include "display.h"
 
+typedef std::chrono::time_point<std::chrono::steady_clock> TimePoint;
+
 struct Timer {
     uint8_t startVal;
-    typedef std::chrono::time_point<std::chrono::steady_clock> TimePoint;
     TimePoint setTime;
 
     uint8_t get() {
         auto now = std::chrono::steady_clock::now();
-        std::chrono::duration<double> diff = now - setTime;
-        double diffMs = diff.count()*1000;
-        if ((int)diffMs < startVal) {
-            return startVal - (int)diffMs;
+        std::chrono::duration<double, std::ratio<1,60> > diff = now - setTime;
+        if ((int)diff.count() < startVal) {
+            return startVal - (int)diff.count();
         }
         return 0;
     }
@@ -41,6 +41,8 @@ class Chip8Vm {
     Display display;
 
     Registers reg;
+
+    bool checkSoundTimer;
     uint16_t stack[32];
     uint8_t memory[0x1000];
     uint16_t digitSpritePos[16];
