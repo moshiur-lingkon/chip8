@@ -301,7 +301,7 @@ void Chip8Vm::pollEvents(bool& exit) {
                     for (int k = 0; k < 16; ++k) {
                         if (keyCodes[k] == event.key.keysym.sym) {
                             keyDown[k] = (event.type == SDL_KEYDOWN);
-                            printf("key_code = %d, state %s\n", k, (keyDown[k]?"down":"up"));
+                            //printf("key_code = %d, state %s\n", k, (keyDown[k]?"down":"up"));
                         }
                     }
                 }
@@ -331,7 +331,7 @@ void Chip8Vm::emulate(const std::vector<uint16_t>& rom) {
     while (true) {
         pollEvents(exit);
         auto now = std::chrono::steady_clock::now();
-        std::chrono::duration<double, std::ratio<1, 500> > diff = now - lastIteration; // 500 hz
+        std::chrono::duration<double, std::ratio<1, 1000> > diff = now - lastIteration; // 1000 hz
         int debt = round(diff.count());
         while (debt-- > 0) {
             run();
