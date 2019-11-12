@@ -14,6 +14,10 @@ class Display {
     SDL_Window* window;
     SDL_Renderer* renderer;
     std::vector<std::vector<bool> > screen;
+
+    void setBGColor();
+    void setFGColor();
+
 public:
     Display(int width, int height, int unit);
     void init();

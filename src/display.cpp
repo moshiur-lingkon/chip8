@@ -24,14 +24,22 @@ void Display::release() {
     SDL_DestroyWindow(window);
 }
 
+void Display::setFGColor() {
+    SDL_SetRenderDrawColor(renderer, 0x00, 0xB0, 0x00, 0xFF);
+}
+
+void Display::setBGColor() {
+    SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
+}
+
 void Display::clear() {
-  SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
-  SDL_RenderClear(renderer);
-  for (int r = 0; r < height; ++r) {
+    setBGColor();
+    SDL_RenderClear(renderer);
+    for (int r = 0; r < height; ++r) {
       for (int c = 0; c < width; ++c) {
           screen[r][c] = false;
       }
-  }
+    }
 }
 
 bool Display::draw(Sprite sprite, int x, int y) {
@@ -55,9 +63,9 @@ bool Display::draw(Sprite sprite, int x, int y) {
                 rect.w = unit;
                 rect.h = unit;
                 if (newState) {
-                    SDL_SetRenderDrawColor(renderer, 0xE0, 0x00, 0x00, 0xFF);
+                    setFGColor();
                 } else {
-                    SDL_SetRenderDrawColor(renderer, 0x01, 0x01, 0x01, 0xFF);
+                    setBGColor();
                 }
                 SDL_RenderFillRect(renderer,&rect);
             }
