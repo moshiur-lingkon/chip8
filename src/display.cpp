@@ -17,6 +17,7 @@ void Display::init() {
                 SDL_WINDOW_OPENGL);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    clear();
 }
 
 void Display::release() {
